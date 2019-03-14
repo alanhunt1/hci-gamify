@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.serializeJSON/2.9.0/jquery.serializejson.min.js"></script>
+  <script>
+    // make a post request.  This is genericized so that the post can either take a form (in which case it will build JSON
+    // from the form elements) or a JSON formatted string.  If you include a callback, it will get called with the response from the API,
+    // and if you don't it just prints out the response to the page.
+    function submitJson(formname, suburl, data, callback) {
+
+      // default the JSON to what is passed in the data param
+      var form = data;
+
+      // if the data block is not defined, then serialize the form that was passed in
+      if (!form) {
+        form = $(formname).serializeJSON();
+      }
+
+      // make an ajax call to post the form and deal with the response
+      $.ajax({
+        url: suburl,
+        type: "POST",
+        dataType: 'json',
+        contentType: 'application/json; charset=UTF-8',
+        data: JSON.stringify(form),
+        success: function(maindta) {
+          if (callback) {
+            callback(maindta);
+          } else {
+            $("#display").html("<pre>" + JSON.stringify(maindta, null, 2) + "</pre>");
+          }
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+          // if there is an error, pop up an alert box.  You may want to replace this with a more subtle and context
+          // friendly way of dealing with errors.
+          var message = "ERROR:" + errorThrown;
+          alert(message);
+        }
+      })
+      return false;
+    }
+
+    // make a get request.  This assumes that the URL already contains the parameters necessary for the call.
+    // If you include a callback, it will get called with the response from the API, and if you don't it just
+    // prints out the response to the page.
+    function getJson(suburl) {
+      $.ajax({
+        url: suburl,
+        type: "GET",
+
+        success: function(maindta) {
+          if (callback) {
+            callback(maindta);
+          } else {
+            // note, this accomplishes the same thing as the jQuery notation in the post version of the function
+            // above.  It's all just javascript - jQuery is providing "shorthand" for the DOM access
+            document.getElementById("display").innerHTML = "<pre>" + JSON.stringify(maindta, null, 2) + "</pre>";
+          }
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+          var message = "ERROR:" + errorThrown;
+          alert(errorThrown);
+        }
+      })
+    };
+
+    function loadGame(maindta) {
+      if (maindta['games']) {
+        // note the equivalent jQuery and tranditional javascript notation to set the values
+        $("#gameid").val(maindta['games'][0].game_id);
+        $("#gamename").val(maindta['games'][0].game_name);
+        $("#gamedescription").val(maindta['games'][0].game_description);
+        document.getElementById('gametype').value = maindta['games'][0].game_type;
+      } else {
+        alert("unable to find a matching ID!");
+      }
+    };
+
+    function loadBadges(maindta) {
+      if (maindta['badges']) {
+        $("#badgeid").val(maindta['badges'][0].badge_id);
+        $("#badgename").val(maindta['badges'][0].badge_name);
+        $("#badgepic").val(maindta['badges'][0].badge_pic);
+        $("#multipleflag").val(maindta['badges'][0].multiple_flag);
+        $("#badgedescription").val(maindta['badges'][0].badge_description);
+      } else {
+        alert("unable to find a matching ID!");
+      }
+    };
+
+    function loadGametypeDropdown(gameTypes) {
+      console.log(gameTypes);
+      gameTypes['game_types'].forEach(gameType => {
+        console.log(gameType);
+        let option = document.createElement("option");
+        option.text = gameType.game_type_name;
+        option.value = gameType.game_type_id;
+        document.getElementById('gametype').add(option);
+      });
+    }
+
+    function loadDropdowns() {
+      submitJson(null, 'gtcontroller.php', {
+        'action': 'getGameTypes'
+      }, loadGametypeDropdown);
+    }
+  </script>
+
+  <style>
+    label {
+      display: inline-block;
+      width: 100px;
+      margin: 10px;
+    }
+
+    .examples {
+      font-family: helvetica;
+    }
+  </style>
+
+</head>
+
+<body onload="loadDropdowns();">
+  <h1 class="examples">CSE 410 API POC Page</h1>
+  <p>Data Structure and Dictionary - <a href="Data.pdf">PDF</a></p>
+
+  <div class="examples" style="display:inline-block;width:50%;vertical-align:top;height:600px;overflow:auto;">
+    <h2>Maintain Games</h2>
+    <h3>Add/Edit Game</h3>
+    <p>Use this form to test adding or editing a game. If you include a value in the game id field, it will update that game. Otherwise, it will add a new game.</p>
+    <form id="gameform">
+      <input type="hidden" id="action" name="action" size="50" value="addOrEditGames">
+      <br>
+      <label>ID</label><input type="text" id="gameid" name="gameid" size="50">
+      <br>
+      <label>name</label><input type="text" id="gamename" name="gamename" size="50">
+      <br>
+      <label>description</label><input type="text" id="gamedescription" name="gamedescription" size="50">
+      <br>
+      <label>type id</label><select id="gametype" name="gametype"></select>
+      <br>
+      <br>
+      <button type="button" onclick="submitJson('#gameform', 'gamecontroller.php');">Add/Update</button>
+      <button type="button" onclick="submitJson(null, 'gamecontroller.php', {'action':'getGames'});">Get Games</button>
+      <button type="button" onclick="submitJson(null, 'gamecontroller.php', {'action':'getGames','gameid':document.getElementById('gameid').value}, loadGame);">Load Game</button>
+    </form>
+
+    <h2>Maintain badges</h2>
+    <h3>Add/Edit badges</h3>
+    <p>Use this form to test adding or editing a badges. If you include a value in the badges id field, it will
+      update that badges. Otherwise, it will add a new one.</p>
+    <form id="badgesform">
+      <input type="hidden" id="action" name="action" size="50" value="addOrEditBadges">
+      <br>
+      <label>badgeId</label><input type="text" id="badgeid" name="badgeid" size="50">
+      <br>
+      <br>
+      <label>badgeName</label><input type="text" id="badgename" name="badgename" size="50">
+      <br>
+      <br>
+      <label>badgePic</label><input type="text" id="badgepic" name="badgepic" size="50">
+      <br>
+      <br>
+      <label>multipleFlag</label><input type="text" id="multipleflag" name="multipleflag" size="50">
+      <br>
+      <br>
+      <label>badgeDescription</label><input type="text" id="badgedescription" name="badgedescription" size="50">
+      <br>
+      <br>
+      <button type="button" onclick="submitJson('#badgesform', 'badgecontroller.php');">Add/Update</button>
+      <button type="button" onclick="submitJson(null, 'badgecontroller.php', {'action':'getBadges'});">Get badges</button>
+      <button type="button" onclick="submitJson(null, 'badgecontroller.php', {'action':'getBadges','badgeid':document.getElementById('badgeid').value}, loadBadges);">Load badges</button>
+    </form>
+
+    <h2>Maintain levels</h2>
+    <h3>Add/Edit levels</h3>
+    <p>Use this form to test adding or editing a levels. If you include a value in the levels id field, it will
+      update that levels. Otherwise, it will add a new one.</p>
+    <form id="levelsform">
+      <input type="hidden" id="action" name="action" size="50" value="addOrEditLevels">
+      <br>
+      <label>levelId</label><input type="text" id="levelid" name="levelid" size="50">
+      <br>
+      <br>
+      <label>levelName</label><input type="text" id="levelname" name="levelname" size="50">
+      <br>
+      <br>
+      <label>gameId</label><input type="text" id="levelgameid" name="levelgameid" size="50">
+      <br>
+      <br>
+      <label>levelDescription</label><input type="text" id="leveldescription" name="leveldescription" size="50">
+      <br>
+      <br>
+      <button type="button" onclick="submitJson('#levelsform', 'levelcontroller.php');">Add/Update</button>
+      <button type="button" onclick="submitJson(null, 'levelcontroller.php', {'action':'getLevels'});">Get levels</button>
+      <button type="button" onclick="submitJson(null, 'levelcontroller.php', {'action':'getLevels','levelid':document.getElementById('levelid').value}, loadLevels);">Load levels</button>
+    </form>
+    <script>
+      function loadLevels(maindta) {
+        if (maindta['levels']) {
+          $("#levelid").val(maindta['levels'][0].level_id);
+          $("#levelname").val(maindta['levels'][0].level_name);
+          $("#levelgameid").val(maindta['levels'][0].game_id);
+          $("#leveldescription").val(maindta['levels'][0].level_description);
+        } else {
+          alert("unable to find a matching ID!");
+        }
+      };
+    </script>
+    <h2>Maintain LevelElements</h2>
+    <h3>Add/Edit LevelElements</h3>
+    <p>Use this form to test adding or editing a level_elements. If you include a value in the elementid id field, it will
+      update that LevelElements. Otherwise, it will add a new one.</p>
+    <form id="LevelElementsform">
+      <input type="hidden" id="action" name="action" size="50" value="addOrEditLevelElements">
+      <br>
+      <label>elementId</label><input type="text" id="elementid" name="elementid" size="50">
+      <br>
+      <br>
+      <label>levelId</label><input type="text" id="elementlevelid" name="elementlevelid" size="50">
+      <br>
+      <br>
+      <label>elementType</label><input type="text" id="elementtype" name="elementtype" size="50">
+      <br>
+      <br>
+      <label>elementKey</label><input type="text" id="elementkey" name="elementkey" size="50">
+      <br>
+      <br>
+      <label>elementSequence</label><input type="text" id="elementsequence" name="elementsequence" size="50">
+      <br>
+      <br>
+      <button type="button" onclick="submitJson('#LevelElementsform', 'levelelementcontroller.php');">Add/Update</button>
+      <button type="button" onclick="submitJson(null, 'levelelementcontroller.php', {'action':'getLevelElements'});">GetLevelElements</button>
+      <button type="button" onclick="submitJson(null, 'levelelementcontroller.php', {'action':'getLevelElements','elementid':document.getElementById('elementid').value}, loadLevelElements);">Load LevelElements</button>
+    </form>
+    <script>
+      function loadLevelElements(maindta) {
+        if (maindta['level_elements']) {
+          $("#elementid").val(maindta['level_elements'][0].element_id);
+          $("#elementlevelid").val(maindta['level_elements'][0].level_id);
+          $("#elementtype").val(maindta['level_elements'][0].element_type);
+          $("#elementkey").val(maindta['level_elements'][0].element_key);
+          $("#elementsequence").val(maindta['level_elements'][0].element_sequence);
+        } else {
+          alert("unable to find a matching ID!");
+        }
+      };
+    </script>
+    <h2>Maintain Questions</h2>
+    <h3>Add/Edit Questions</h3>
+    <p>Use this form to test adding or editing a questions. If you include a value in the questionid id field, it will
+      update that Questions. Otherwise, it will add a new one.</p>
+    <form id="Questionsform">
+      <input type="hidden" id="action" name="action" size="50" value="addOrEditQuestions">
+      <br>
+      <label>questionId</label><input type="text" id="questionid" name="questionid" size="50">
+      <br>
+      <br>
+      <label>questionTitle</label><input type="text" id="questiontitle" name="questiontitle" size="50">
+      <br>
+      <br>
+      <label>questionText</label><input type="text" id="questiontext" name="questiontext" size="50">
+      <br>
+      <br>
+      <label>questionType</label><input type="text" id="questiontype" name="questiontype" size="50">
+      <br>
+      <br>
+      <label>hintText</label><input type="text" id="hinttext" name="hinttext" size="50">
+      <br>
+      <br>
+      <button type="button" onclick="submitJson('#Questionsform', 'questioncontroller.php');">Add/Update</button>
+      <button type="button" onclick="submitJson(null, 'questioncontroller.php', {'action':'getQuestions'});">GetQuestions</button>
+      <button type="button" onclick="submitJson(null, 'questioncontroller.php', {'action':'getQuestions','questionid':document.getElementById('questionid').value}, loadQuestions);">Load Questions</button>
+    </form>
+    <script>
+      function loadQuestions(maindta) {
+        if (maindta['questions']) {
+          $("#questionid").val(maindta['questions'][0].question_id);
+          $("#questiontitle").val(maindta['questions'][0].question_title);
+          $("#questiontext").val(maindta['questions'][0].question_text);
+          $("#questiontype").val(maindta['questions'][0].question_type);
+          $("#hinttext").val(maindta['questions'][0].hint_text);
+        } else {
+          alert("unable to find a matching ID!");
+        }
+      };
+    </script>
+    <h2>Maintain Answers</h2>
+    <h3>Add/Edit Answers</h3>
+    <p>Use this form to test adding or editing a answers. If you include a value in the answerid id field, it will
+      update that Answers. Otherwise, it will add a new one.</p>
+    <form id="Answersform">
+      <input type="hidden" id="action" name="action" size="50" value="addOrEditAnswers">
+      <br>
+      <label>answerId</label><input type="text" id="answerid" name="answerid" size="50">
+      <br>
+      <br>
+      <label>questionId</label><input type="text" id="answerquestionid" name="answerquestionid" size="50">
+      <br>
+      <br>
+      <label>answerText</label><input type="text" id="answertext" name="answertext" size="50">
+      <br>
+      <br>
+      <label>answerPic</label><input type="text" id="answerpic" name="answerpic" size="50">
+      <br>
+      <br>
+      <label>correctFlag</label><input type="text" id="correctflag" name="correctflag" size="50">
+      <br>
+      <br>
+      <button type="button" onclick="submitJson('#Answersform', 'answercontroller.php');">Add/Update</button>
+      <button type="button" onclick="submitJson(null, 'answercontroller.php', {'action':'getAnswers'});">GetAnswers</button>
+      <button type="button" onclick="submitJson(null, 'answercontroller.php', {'action':'getAnswers','answerid':document.getElementById('answerid').value}, loadAnswers);">Load Answers</button>
+    </form>
+    <script>
+      function loadAnswers(maindta) {
+        if (maindta['answers']) {
+          $("#answerid").val(maindta['answers'][0].answer_id);
+          $("#answerquestionid").val(maindta['answers'][0].question_id);
+          $("#answertext").val(maindta['answers'][0].answer_text);
+          $("#answerpic").val(maindta['answers'][0].answer_pic);
+          $("#correctflag").val(maindta['answers'][0].correct_flag);
+        } else {
+          alert("unable to find a matching ID!");
+        }
+      };
+    </script>
+    <h2>Maintain Challenges</h2>
+    <h3>Add/Edit Challenges</h3>
+    <p>Use this form to test adding or editing a challenges. If you include a value in the challengeid id field, it will
+      update that Challenges. Otherwise, it will add a new one.</p>
+    <form id="Challengesform">
+      <input type="hidden" id="action" name="action" size="50" value="addOrEditChallenges">
+      <br>
+      <label>challengeId</label><input type="text" id="challengeid" name="challengeid" size="50">
+      <br>
+      <br>
+      <label>challengeName</label><input type="text" id="challengename" name="challengename" size="50">
+      <br>
+      <br>
+      <label>challengeDescription</label><input type="text" id="challengedescription" name="challengedescription" size="50">
+      <br>
+      <br>
+      <label>challengeStart</label><input type="text" id="challengestart" name="challengestart" size="50">
+      <br>
+      <br>
+      <label>challengeEnd</label><input type="text" id="challengeend" name="challengeend" size="50">
+      <br>
+      <br>
+      <label>challengeType</label><input type="text" id="challengetype" name="challengetype" size="50">
+      <br>
+      <br>
+      <label>challengeDuration</label><input type="text" id="challengeduration" name="challengeduration" size="50">
+      <br>
+      <br>
+      <label>badgeId</label><input type="text" id="challengebadgeid" name="challengebadgeid" size="50">
+      <br>
+      <br>
+      <label>points</label><input type="text" id="points" name="points" size="50">
+      <br>
+      <br>
+      <label>linkedId</label><input type="text" id="linkedid" name="linkedid" size="50">
+      <br>
+      <br>
+      <button type="button" onclick="submitJson('#Challengesform', 'challengecontroller.php');">Add/Update</button>
+      <button type="button" onclick="submitJson(null, 'challengecontroller.php', {'action':'getChallenges'});">GetChallenges</button>
+      <button type="button" onclick="submitJson(null, 'challengecontroller.php', {'action':'getChallenges','challengeid':document.getElementById('challengeid').value}, loadChallenges);">Load Challenges</button>
+    </form>
+    <script>
+      function loadChallenges(maindta) {
+        if (maindta['challenges']) {
+          $("#challengeid").val(maindta['challenges'][0].challenge_id);
+          $("#challengename").val(maindta['challenges'][0].challenge_name);
+          $("#challengedescription").val(maindta['challenges'][0].challenge_description);
+          $("#challengestart").val(maindta['challenges'][0].challenge_start);
+          $("#challengeend").val(maindta['challenges'][0].challenge_end);
+          $("#challengetype").val(maindta['challenges'][0].challenge_type);
+          $("#challengeduration").val(maindta['challenges'][0].challenge_duration);
+          $("#challengebadgeid").val(maindta['challenges'][0].badge_id);
+          $("#points").val(maindta['challenges'][0].points);
+          $("#linkedid").val(maindta['challenges'][0].linked_id);
+        } else {
+          alert("unable to find a matching ID!");
+        }
+      };
+    </script>
+    <h2>Maintain Friends</h2>
+    <h3>Add/Edit Friends</h3>
+    <p>Use this form to test adding or editing a friends. If you include a value in the friendid id field, it will
+      update that Friends. Otherwise, it will add a new one.</p>
+    <form id="Friendsform">
+      <input type="hidden" id="action" name="action" size="50" value="addOrEditFriends">
+      <br>
+      <label>friendId</label><input type="text" id="friendid" name="friendid" size="50">
+      <br>
+      <br>
+      <label>userId</label><input type="text" id="frienduserid" name="frienduserid" size="50">
+      <br>
+      <br>
+      <label>userFriendId</label><input type="text" id="userfriendid" name="userfriendid" size="50">
+      <br>
+      <br>
+      <button type="button" onclick="submitJson('#Friendsform', 'friendcontroller.php');">Add/Update</button>
+      <button type="button" onclick="submitJson(null, 'friendcontroller.php', {'action':'getFriends'});">GetFriends</button>
+      <button type="button" onclick="submitJson(null, 'friendcontroller.php', {'action':'getFriends','friendid':document.getElementById('friendid').value}, loadFriends);">Load Friends</button>
+    </form>
+    <script>
+      function loadFriends(maindta) {
+        if (maindta['friends']) {
+          $("#friendid").val(maindta['friends'][0].friend_id);
+          $("#frienduserid").val(maindta['friends'][0].user_id);
+          $("#userfriendid").val(maindta['friends'][0].user_friend_id);
+        } else {
+          alert("unable to find a matching ID!");
+        }
+      };
+    </script>
+    <h2>Maintain Narratives</h2>
+    <h3>Add/Edit Narratives</h3>
+    <p>Use this form to test adding or editing a narratives. If you include a value in the narrativeid id field, it will
+      update that Narratives. Otherwise, it will add a new one.</p>
+    <form id="Narrativesform">
+      <input type="hidden" id="action" name="action" size="50" value="addOrEditNarratives">
+      <br>
+      <label>narrativeId</label><input type="text" id="narrativeid" name="narrativeid" size="50">
+      <br>
+      <br>
+      <label>url</label><input type="text" id="url" name="url" size="50">
+      <br>
+      <br>
+      <label>pic</label><input type="text" id="pic" name="pic" size="50">
+      <br>
+      <br>
+      <label>text</label><input type="text" id="text" name="text" size="50">
+      <br>
+      <br>
+      <button type="button" onclick="submitJson('#Narrativesform', 'narrativecontroller.php');">Add/Update</button>
+      <button type="button" onclick="submitJson(null, 'narrativecontroller.php', {'action':'getNarratives'});">GetNarratives</button>
+      <button type="button" onclick="submitJson(null, 'narrativecontroller.php', {'action':'getNarratives','narrativeid':document.getElementById('narrativeid').value}, loadNarratives);">Load Narratives</button>
+    </form>
+    <script>
+      function loadNarratives(maindta) {
+        if (maindta['narratives']) {
+          $("#narrativeid").val(maindta['narratives'][0].narrative_id);
+          $("#url").val(maindta['narratives'][0].url);
+          $("#pic").val(maindta['narratives'][0].pic);
+          $("#text").val(maindta['narratives'][0].text);
+        } else {
+          alert("unable to find a matching ID!");
+        }
+      };
+    </script>
+    <h2>Maintain Skills</h2>
+    <h3>Add/Edit Skills</h3>
+    <p>Use this form to test adding or editing a skills. If you include a value in the skillid id field, it will
+      update that Skills. Otherwise, it will add a new one.</p>
+    <form id="Skillsform">
+      <input type="hidden" id="action" name="action" size="50" value="addOrEditSkills">
+      <br>
+      <label>skillId</label><input type="text" id="skillid" name="skillid" size="50">
+      <br>
+      <br>
+      <label>skillName</label><input type="text" id="skillname" name="skillname" size="50">
+      <br>
+      <br>
+      <label>skillDescription</label><input type="text" id="skilldescription" name="skilldescription" size="50">
+      <br>
+      <br>
+      <button type="button" onclick="submitJson('#Skillsform', 'skillcontroller.php');">Add/Update</button>
+      <button type="button" onclick="submitJson(null, 'skillcontroller.php', {'action':'getSkills'});">GetSkills</button>
+      <button type="button" onclick="submitJson(null, 'skillcontroller.php', {'action':'getSkills','skillid':document.getElementById('skillid').value}, loadSkills);">Load Skills</button>
+    </form>
+    <script>
+      function loadSkills(maindta) {
+        if (maindta['skills']) {
+          $("#skillid").val(maindta['skills'][0].skill_id);
+          $("#skillname").val(maindta['skills'][0].skill_name);
+          $("#skilldescription").val(maindta['skills'][0].skill_description);
+        } else {
+          alert("unable to find a matching ID!");
+        }
+      };
+    </script>
+    <h2>Maintain SkillTree</h2>
+    <h3>Add/Edit SkillTree</h3>
+    <p>Use this form to test adding or editing a skill_tree. If you include a value in the stid id field, it will
+      update that SkillTree. Otherwise, it will add a new one.</p>
+    <form id="SkillTreeform">
+      <input type="hidden" id="action" name="action" size="50" value="addOrEditSkillTree">
+      <br>
+      <label>stId</label><input type="text" id="stid" name="stid" size="50">
+      <br>
+      <br>
+      <label>parentId</label><input type="text" id="parentid" name="parentid" size="50">
+      <br>
+      <br>
+      <label>skillId</label><input type="text" id="skillid" name="skillid" size="50">
+      <br>
+      <br>
+      <button type="button" onclick="submitJson('#SkillTreeform', 'stcontroller.php');">Add/Update</button>
+      <button type="button" onclick="submitJson(null, 'stcontroller.php', {'action':'getSkillTree'});">GetSkillTree</button>
+      <button type="button" onclick="submitJson(null, 'stcontroller.php', {'action':'getSkillTree','stid':document.getElementById('stid').value}, loadSkillTree);">Load SkillTree</button>
+    </form>
+    <script>
+      function loadSkillTree(maindta) {
+        if (maindta['skill_tree']) {
+          $("#stid").val(maindta['skill_tree'][0].st_id);
+          $("#parentid").val(maindta['skill_tree'][0].parent_id);
+          $("#skillid").val(maindta['skill_tree'][0].skill_id);
+        } else {
+          alert("unable to find a matching ID!");
+        }
+      };
+    </script>
+
+    <h2>Maintain Users</h2>
+    <h3>Add/Edit Users</h3>
+    <p>Use this form to test adding or editing a users. If you include a value in the userid id field, it will
+      update that Users. Otherwise, it will add a new one.</p>
+    <form id="Usersform">
+      <input type="hidden" id="action" name="action" size="50" value="addOrEditUsers">
+      <br>
+      <label>userId</label><input type="text" id="userid" name="userid" size="50">
+      <br>
+      <br>
+      <label>userName</label><input type="text" id="username" name="username" size="50">
+      <br>
+      <br>
+      <label>userLevel</label><input type="text" id="userlevel" name="userlevel" size="50">
+      <br>
+      <br>
+      <label>userPoints</label><input type="text" id="userpoints" name="userpoints" size="50">
+      <br>
+      <br>
+      <label>playerName</label><input type="text" id="playername" name="playername" size="50">
+      <br>
+      <br>
+      <label>avatarImage</label><input type="text" id="avatarimage" name="avatarimage" size="50">
+      <br>
+      <br>
+      <label>userCategory</label><input type="text" id="usercategory" name="usercategory" size="50">
+      <br>
+      <br>
+      <label>userAttributes</label><input type="text" id="userattributes" name="userattributes" size="50">
+      <br>
+      <br>
+      <button type="button" onclick="submitJson('#Usersform', 'usercontroller.php');">Add/Update</button>
+      <button type="button" onclick="submitJson(null, 'usercontroller.php', {'action':'getUsers'});">GetUsers</button>
+      <button type="button" onclick="submitJson(null, 'usercontroller.php', {'action':'getUsers','userid':document.getElementById('userid').value}, loadUsers);">Load Users</button>
+    </form>
+    <script>
+      function loadUsers(maindta) {
+        if (maindta['users']) {
+          $("#userid").val(maindta['users'][0].user_id);
+          $("#username").val(maindta['users'][0].user_name);
+          $("#userlevel").val(maindta['users'][0].user_level);
+          $("#userpoints").val(maindta['users'][0].user_points);
+          $("#playername").val(maindta['users'][0].player_name);
+          $("#avatarimage").val(maindta['users'][0].avatar_image);
+          $("#usercategory").val(maindta['users'][0].user_category);
+          $("#userattributes").val(maindta['users'][0].user_attributes);
+        } else {
+          alert("unable to find a matching ID!");
+        }
+      };
+    </script>
+
+    <h2>Maintain UserBadges</h2>
+    <h3>Add/Edit UserBadges</h3>
+    <p>Use this form to test adding or editing a user_badges. If you include a value in the ubid id field, it will
+      update that UserBadges. Otherwise, it will add a new one.</p>
+    <form id="UserBadgesform">
+      <input type="hidden" id="action" name="action" size="50" value="addOrEditUserBadges">
+      <br>
+      <label>ubId</label><input type="text" id="ubid" name="ubid" size="50">
+      <br>
+      <br>
+      <label>userId</label><input type="text" id="ubuserid" name="ubuserid" size="50">
+      <br>
+      <br>
+      <label>badgeId</label><input type="text" id="ubbadgeid" name="ubbadgeid" size="50">
+      <br>
+      <br>
+      <button type="button" onclick="submitJson('#UserBadgesform', 'ubcontroller.php');">Add/Update</button>
+      <button type="button" onclick="submitJson(null, 'ubcontroller.php', {'action':'getUserBadges'});">GetUserBadges</button>
+      <button type="button" onclick="submitJson(null, 'ubcontroller.php', {'action':'getUserBadges','ubid':document.getElementById('ubid').value}, loadUserBadges);">Load UserBadges</button>
+    </form>
+    <script>
+      function loadUserBadges(maindta) {
+        if (maindta['user_badges']) {
+          $("#ubid").val(maindta['user_badges'][0].ub_id);
+          $("#ubuserid").val(maindta['user_badges'][0].user_id);
+          $("#ubbadgeid").val(maindta['user_badges'][0].badge_id);
+        } else {
+          alert("unable to find a matching ID!");
+        }
+      };
+    </script>
+    <h2>Maintain UserChallenges</h2>
+    <h3>Add/Edit UserChallenges</h3>
+    <p>Use this form to test adding or editing a user_challenges. If you include a value in the ucid id field, it will
+      update that UserChallenges. Otherwise, it will add a new one.</p>
+    <form id="UserChallengesform">
+      <input type="hidden" id="action" name="action" size="50" value="addOrEditUserChallenges">
+      <br>
+      <label>ucId</label><input type="text" id="ucid" name="ucid" size="50">
+      <br>
+      <br>
+      <label>userId</label><input type="text" id="userid" name="userid" size="50">
+      <br>
+      <br>
+      <label>challengeId</label><input type="text" id="challengeid" name="challengeid" size="50">
+      <br>
+      <br>
+      <label>progressNotes</label><input type="text" id="progressnotes" name="progressnotes" size="50">
+      <br>
+      <br>
+      <button type="button" onclick="submitJson('#UserChallengesform', 'uccontroller.php');">Add/Update</button>
+      <button type="button" onclick="submitJson(null, 'uccontroller.php', {'action':'getUserChallenges'});">GetUserChallenges</button>
+      <button type="button" onclick="submitJson(null, 'uccontroller.php', {'action':'getUserChallenges','ucid':document.getElementById('ucid').value}, loadUserChallenges);">Load UserChallenges</button>
+    </form>
+    <script>
+      function loadUserChallenges(maindta) {
+        if (maindta['user_challenges']) {
+          $("#ucid").val(maindta['user_challenges'][0].uc_id);
+          $("#userid").val(maindta['user_challenges'][0].user_id);
+          $("#challengeid").val(maindta['user_challenges'][0].challenge_id);
+          $("#progressnotes").val(maindta['user_challenges'][0].progress_notes);
+        } else {
+          alert("unable to find a matching ID!");
+        }
+      };
+    </script>
+    <h2>Maintain UserProgress</h2>
+    <h3>Add/Edit UserProgress</h3>
+    <p>Use this form to test adding or editing a user_progress. If you include a value in the upid id field, it will
+      update that UserProgress. Otherwise, it will add a new one.</p>
+    <form id="UserProgressform">
+      <input type="hidden" id="action" name="action" size="50" value="addOrEditUserProgress">
+      <br>
+      <label>upId</label><input type="text" id="upid" name="upid" size="50">
+      <br>
+      <br>
+      <label>userId</label><input type="text" id="userid" name="userid" size="50">
+      <br>
+      <br>
+      <label>leId</label><input type="text" id="leid" name="leid" size="50">
+      <br>
+      <br>
+      <label>notes</label><input type="text" id="notes" name="notes" size="50">
+      <br>
+      <br>
+      <button type="button" onclick="submitJson('#UserProgressform', 'upcontroller.php');">Add/Update</button>
+      <button type="button" onclick="submitJson(null, 'upcontroller.php', {'action':'getUserProgress'});">GetUserProgress</button>
+      <button type="button" onclick="submitJson(null, 'upcontroller.php', {'action':'getUserProgress','upid':document.getElementById('upid').value}, loadUserProgress);">Load UserProgress</button>
+    </form>
+    <script>
+      function loadUserProgress(maindta) {
+        if (maindta['user_progress']) {
+          $("#upid").val(maindta['user_progress'][0].up_id);
+          $("#userid").val(maindta['user_progress'][0].user_id);
+          $("#leid").val(maindta['user_progress'][0].le_id);
+          $("#notes").val(maindta['user_progress'][0].notes);
+        } else {
+          alert("unable to find a matching ID!");
+        }
+      };
+    </script>
+    <h2>Maintain UserSkills</h2>
+    <h3>Add/Edit UserSkills</h3>
+    <p>Use this form to test adding or editing a user_skills. If you include a value in the usid id field, it will
+      update that UserSkills. Otherwise, it will add a new one.</p>
+    <form id="UserSkillsform">
+      <input type="hidden" id="action" name="action" size="50" value="addOrEditUserSkills">
+      <br>
+      <label>usId</label><input type="text" id="usid" name="usid" size="50">
+      <br>
+      <br>
+      <label>skillId</label><input type="text" id="skillid" name="skillid" size="50">
+      <br>
+      <br>
+      <label>userId</label><input type="text" id="userid" name="userid" size="50">
+      <br>
+      <br>
+      <button type="button" onclick="submitJson('#UserSkillsform', 'uscontroller.php');">Add/Update</button>
+      <button type="button" onclick="submitJson(null, 'uscontroller.php', {'action':'getUserSkills'});">GetUserSkills</button>
+      <button type="button" onclick="submitJson(null, 'uscontroller.php', {'action':'getUserSkills','usid':document.getElementById('usid').value}, loadUserSkills);">Load UserSkills</button>
+    </form>
+    <script>
+      function loadUserSkills(maindta) {
+        if (maindta['user_skills']) {
+          $("#usid").val(maindta['user_skills'][0].us_id);
+          $("#skillid").val(maindta['user_skills'][0].skill_id);
+          $("#userid").val(maindta['user_skills'][0].user_id);
+        } else {
+          alert("unable to find a matching ID!");
+        }
+      };
+    </script>
+  </div>
+  <div id="display" style="display:inline-block;width:45%;height:600px;overflow:auto;background-color:#DDD;font-family:Courier;">
+  </div>
+</body>
+
+</html>

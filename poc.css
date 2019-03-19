@@ -1,0 +1,9 @@
+label {
+  display: inline-block;
+  width: 100px;
+  margin: 10px;
+}
+
+body {
+  font-family: helvetica;
+}

@@ -1,5 +1,6 @@
 <?php
 
+//testing
 require 'utils.php';
 require 'connect.php';
 
@@ -12,7 +13,7 @@ $json_params = file_get_contents('php://input');
 // check to make sure that the JSON is in a valid format
 if (isValidJSON($json_params)){
  //load in all the potential parameters.  These should match the database columns for the objects. 
-  $decoded_params = json_decode($json_params, TRUE);
+  $conn = getDbConnection();  $decoded_params = json_decode($json_params, TRUE);
   $action = $decoded_params['action'];
   $json['action'] = $action;
   // uncomment the following line if you want to turn PHP error reporting on for debug - note, this will break the JSON response
@@ -200,8 +201,171 @@ if (!IsNullOrEmpty($userAttributes)){
     }catch (Exception $e) { 
       $json['Exception'] =  $e->getMessage();
     }
-    foreach($result as $row ) {
-        $json['users'][] = $row;
+    foreach($result as $row1 ) {
+        $json['users'][] = $row1;
+    }
+} else if ($action == "getCompleteUsers"){
+    $args = array();
+    $sql = "SELECT * FROM users";
+ $first = true;
+if (!IsNullOrEmpty($userId)){
+      if ($first) {
+        $sql .= " WHERE user_id = ? ";
+        $first = false;
+      }else{
+        $sql .= " AND user_id = ? ";
+      }
+      array_push ($args, $userId);
+    }
+if (!IsNullOrEmpty($userName)){
+      if ($first) {
+        $sql .= " WHERE user_name = ? ";
+        $first = false;
+      }else{
+        $sql .= " AND user_name = ? ";
+      }
+      array_push ($args, $userName);
+    }
+if (!IsNullOrEmpty($userLevel)){
+      if ($first) {
+        $sql .= " WHERE user_level = ? ";
+        $first = false;
+      }else{
+        $sql .= " AND user_level = ? ";
+      }
+      array_push ($args, $userLevel);
+    }
+if (!IsNullOrEmpty($userPoints)){
+      if ($first) {
+        $sql .= " WHERE user_points = ? ";
+        $first = false;
+      }else{
+        $sql .= " AND user_points = ? ";
+      }
+      array_push ($args, $userPoints);
+    }
+if (!IsNullOrEmpty($playerName)){
+      if ($first) {
+        $sql .= " WHERE player_name = ? ";
+        $first = false;
+      }else{
+        $sql .= " AND player_name = ? ";
+      }
+      array_push ($args, $playerName);
+    }
+if (!IsNullOrEmpty($avatarImage)){
+      if ($first) {
+        $sql .= " WHERE avatar_image = ? ";
+        $first = false;
+      }else{
+        $sql .= " AND avatar_image = ? ";
+      }
+      array_push ($args, $avatarImage);
+    }
+if (!IsNullOrEmpty($userCategory)){
+      if ($first) {
+        $sql .= " WHERE user_category = ? ";
+        $first = false;
+      }else{
+        $sql .= " AND user_category = ? ";
+      }
+      array_push ($args, $userCategory);
+    }
+if (!IsNullOrEmpty($userAttributes)){
+      if ($first) {
+        $sql .= " WHERE user_attributes = ? ";
+        $first = false;
+      }else{
+        $sql .= " AND user_attributes = ? ";
+      }
+      array_push ($args, $userAttributes);
+    }
+    $json['SQL'] = $sql; 
+    try{
+      $statement = $conn->prepare($sql);
+      $statement->setFetchMode(PDO::FETCH_ASSOC);
+      $statement->execute($args);
+      $result = $statement->fetchAll();
+    }catch (Exception $e) { 
+      $json['Exception'] =  $e->getMessage();
+    }
+    foreach($result as $row1 ) {
+    $sql = "SELECT badges.* FROM users, user_badges, badges WHERE 
+             users.user_id = user_badges.user_id
+             AND user_badges.badge_id = badges.badge_id AND users.user_id = ".$row1['user_id'];
+    $json['SQL user_badges'] = $sql; 
+    try{
+      $conn2 = getDbConnection();      $statement2 = $conn2->prepare($sql);
+      $statement2->setFetchMode(PDO::FETCH_ASSOC);
+      $statement2->execute();
+      $result2 = $statement2->fetchAll();
+    }catch (Exception $e) { 
+      $json['Exception'] =  $e->getMessage();
+    }
+    foreach($result2 as $row2 ) {
+        $row1['badges'][] = $row2;
+    }
+    $sql = "SELECT skills.* FROM users, user_skills, skills WHERE 
+             users.user_id = user_skills.user_id
+             AND user_skills.skill_id = skills.skill_id AND users.user_id = ".$row1['user_id'];
+    $json['SQL user_skills'] = $sql; 
+    try{
+      $conn2 = getDbConnection();      $statement2 = $conn2->prepare($sql);
+      $statement2->setFetchMode(PDO::FETCH_ASSOC);
+      $statement2->execute();
+      $result2 = $statement2->fetchAll();
+    }catch (Exception $e) { 
+      $json['Exception'] =  $e->getMessage();
+    }
+    foreach($result2 as $row2 ) {
+        $row1['skills'][] = $row2;
+    }
+    $sql = "SELECT challenges.* FROM users, user_challenges, challenges WHERE 
+             users.user_id = user_challenges.user_id
+             AND user_challenges.challenge_id = challenges.challenge_id AND users.user_id = ".$row1['user_id'];
+    $json['SQL user_challenges'] = $sql; 
+    try{
+      $conn2 = getDbConnection();      $statement2 = $conn2->prepare($sql);
+      $statement2->setFetchMode(PDO::FETCH_ASSOC);
+      $statement2->execute();
+      $result2 = $statement2->fetchAll();
+    }catch (Exception $e) { 
+      $json['Exception'] =  $e->getMessage();
+    }
+    foreach($result2 as $row2 ) {
+        $row1['challenges'][] = $row2;
+    }
+    $sql = "SELECT level_elements.* FROM users, user_progress, level_elements WHERE 
+             users.user_id = user_progress.user_id
+             AND user_progress.le_id = level_elements.element_id AND users.user_id = ".$row1['user_id'];
+    $json['SQL user_progress'] = $sql; 
+    try{
+      $conn2 = getDbConnection();      $statement2 = $conn2->prepare($sql);
+      $statement2->setFetchMode(PDO::FETCH_ASSOC);
+      $statement2->execute();
+      $result2 = $statement2->fetchAll();
+    }catch (Exception $e) { 
+      $json['Exception'] =  $e->getMessage();
+    }
+    foreach($result2 as $row2 ) {
+        $row1['level_elements'][] = $row2;
+    }
+    $sql = "SELECT friends.* FROM users, friends WHERE 
+             users.user_id = friends.user_id
+              AND users.user_id = ".$row1['user_id'];
+    $json['SQL friends'] = $sql; 
+    try{
+      $conn2 = getDbConnection();      $statement2 = $conn2->prepare($sql);
+      $statement2->setFetchMode(PDO::FETCH_ASSOC);
+      $statement2->execute();
+      $result2 = $statement2->fetchAll();
+    }catch (Exception $e) { 
+      $json['Exception'] =  $e->getMessage();
+    }
+    foreach($result2 as $row2 ) {
+        $row1['friends'][] = $row2;
+    }
+        $json['users'][] = $row1;
     }
 } else { 
     $json['Exeption'] = "Unrecognized Action ";
@@ -211,5 +375,5 @@ else{
   $json['Exeption'] = "Invalid JSON on Inbound Request";
 } 
 echo json_encode($json);
-$conn = null; 
+closeConnections(); 
 ?>

@@ -1,5 +1,6 @@
 <?php
 
+//testing
 require 'utils.php';
 require 'connect.php';
 
@@ -12,7 +13,7 @@ $json_params = file_get_contents('php://input');
 // check to make sure that the JSON is in a valid format
 if (isValidJSON($json_params)){
  //load in all the potential parameters.  These should match the database columns for the objects. 
-  $decoded_params = json_decode($json_params, TRUE);
+  $conn = getDbConnection();  $decoded_params = json_decode($json_params, TRUE);
   $action = $decoded_params['action'];
   $json['action'] = $action;
   // uncomment the following line if you want to turn PHP error reporting on for debug - note, this will break the JSON response
@@ -45,11 +46,11 @@ try{
 $statement = $conn->prepare($sql);
 $statement->execute($args);
 $last_id = $conn->lastInsertId();
+$json['Record Id'] = $last_id;
+$json['Status'] = "SUCCESS - Inserted Id $last_id";
 }catch (Exception $e) { 
     $json['Exception'] =  $e->getMessage();
 }
-$json['Record Id'] = $last_id;
-$json['Status'] = "SUCCESS - Inserted Id $last_id";
 }else{
 $sql = "UPDATE levels SET level_name = ?,game_id = ?,level_description = ? WHERE level_id = ?; ";
 array_push($args, $levelName);
@@ -140,8 +141,8 @@ if (!IsNullOrEmpty($levelDescription)){
     }catch (Exception $e) { 
       $json['Exception'] =  $e->getMessage();
     }
-    foreach($result as $row ) {
-        $json['levels'][] = $row;
+    foreach($result as $row1 ) {
+        $json['levels'][] = $row1;
     }
 } else { 
     $json['Exeption'] = "Unrecognized Action ";
@@ -151,5 +152,5 @@ else{
   $json['Exeption'] = "Invalid JSON on Inbound Request";
 } 
 echo json_encode($json);
-$conn = null; 
+closeConnections(); 
 ?>

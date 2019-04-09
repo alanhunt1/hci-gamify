@@ -1,3 +1,5 @@
+let urlBase = "http://stark.cse.buffalo.edu/cse410/";
+
 // make a post request.  This is genericized so that the post can either take a form (in which case it will build JSON
 // from the form elements) or a JSON formatted string.  If you include a callback, it will get called with the response from the API,
 // and if you don't it just prints out the response to the page.
@@ -13,7 +15,7 @@ function submitJson(formname, suburl, data, callback) {
 
   // make an ajax call to post the form and deal with the response
   $.ajax({
-    url: suburl,
+    url: urlBase + suburl,
     type: "POST",
     dataType: 'json',
     contentType: 'application/json; charset=UTF-8',
@@ -40,7 +42,7 @@ function submitJson(formname, suburl, data, callback) {
 // prints out the response to the page.
 function getJson(suburl) {
   $.ajax({
-    url: suburl,
+    url: urlBase + suburl,
     type: "GET",
 
     success: function(maindta) {

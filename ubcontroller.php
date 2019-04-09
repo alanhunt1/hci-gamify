@@ -7,7 +7,7 @@ require 'connect.php';
 // the response will be a JSON object
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
-$json = array();
+header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");$json = array();
 // pull the input, which should be in the form of a JSON object
 $json_params = file_get_contents('php://input');
 // check to make sure that the JSON is in a valid format

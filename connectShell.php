@@ -1,6 +1,5 @@
 <?php
 
-"
 $connections = array();
 
 function getDbConnection(){
